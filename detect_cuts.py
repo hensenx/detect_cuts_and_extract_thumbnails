@@ -34,6 +34,9 @@ def create_proxy(source_path, proxy_path):
 
 def generate_html(output_dir, video_name, shot_data, num_shots, total_frames):
     html_path = os.path.join(output_dir, "Shot_Sheet.html")
+    # Generate a unique key for this specific video's storage
+    storage_key = f"scenedetect_{video_name.replace(' ', '_')}"
+    
     html_content = f"""
 <!DOCTYPE html>
 <html>
@@ -47,10 +50,12 @@ def generate_html(output_dir, video_name, shot_data, num_shots, total_frames):
         img {{ width: 320px; border-radius: 6px; border: 1px solid #333; }}
         .shot-code {{ font-family: monospace; font-weight: bold; font-size: 1.2em; color: #ffcc00; }}
         .timestamp {{ font-family: monospace; color: #00ffcc; }}
-        textarea {{ width: 100%; height: 60px; background: #222; color: white; border: 1px solid #444; border-radius: 4px; padding: 5px; }}
+        textarea {{ width: 100%; height: 60px; background: #222; color: white; border: 1px solid #444; border-radius: 4px; padding: 5px; font-family: inherit; }}
+        .save-status {{ position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 10px 20px; border-radius: 20px; display: none; }}
     </style>
 </head>
 <body>
+    <div id="save-status" class="save-status">Saved!</div>
     <h1>Visual Shot Sheet: {video_name}</h1>
     <p>Total Shots: {num_shots} | Total Frames: {total_frames}</p>
     <table>
@@ -58,16 +63,59 @@ def generate_html(output_dir, video_name, shot_data, num_shots, total_frames):
         <tbody>
 """
     for shot in shot_data:
+        s_id = shot['Shot Code']
         html_content += f"""
         <tr>
-            <td class="shot-code">{shot['Shot Code']}</td>
+            <td class="shot-code">{s_id}</td>
             <td><a href="thumbnails/{shot['Thumbnail']}" target="_blank"><img src="thumbnails/{shot['Thumbnail']}"></a></td>
             <td class="timestamp">{shot['Start (HH:MM:SS.ms)']}</td>
             <td>{shot['Frame Count']} frames</td>
-            <td style="text-align: center;"><input type="checkbox" style="transform: scale(1.5);"></td>
-            <td><textarea placeholder="Add description..."></textarea></td>
+            <td style="text-align: center;"><input type="checkbox" id="vfx-{s_id}" class="persist" style="transform: scale(1.5);"></td>
+            <td><textarea id="desc-{s_id}" class="persist" placeholder="Add description..."></textarea></td>
         </tr>"""
-    html_content += "</tbody></table></body></html>"
+    
+    html_content += f"""
+        </tbody>
+    </table>
+
+    <script>
+        const STORAGE_KEY = "{storage_key}";
+        const statusEl = document.getElementById('save-status');
+
+        // Load data on start
+        function loadData() {{
+            const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{{}}');
+            document.querySelectorAll('.persist').forEach(el => {{
+                if (data[el.id] !== undefined) {{
+                    if (el.type === 'checkbox') el.checked = data[el.id];
+                    else el.value = data[el.id];
+                }}
+            }});
+        }}
+
+        // Save data on change
+        function saveData() {{
+            const data = {{}};
+            document.querySelectorAll('.persist').forEach(el => {{
+                data[el.id] = (el.type === 'checkbox') ? el.checked : el.value;
+            }});
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            
+            // Show status
+            statusEl.style.display = 'block';
+            setTimeout(() => {{ statusEl.style.display = 'none'; }}, 1000);
+        }}
+
+        document.querySelectorAll('.persist').forEach(el => {{
+            el.addEventListener('input', saveData);
+            el.addEventListener('change', saveData);
+        }});
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
+"""
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
