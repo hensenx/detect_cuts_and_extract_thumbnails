@@ -1,0 +1,6 @@
+torch
+torchvision
+opencv-python-headless
+pandas
+transnetv2-pytorch
+XlsxWriter

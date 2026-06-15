@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.env
+
+# Data and Outputs
+*_scenedetect/
+*.mp4
+*.jpg
+*.csv
+*.xlsx
+*.html
+
+# OS files
+.DS_Store
+Thumbs.db
